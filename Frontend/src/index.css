@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@plugin "daisyui/theme" {
+  name: "floodresponse";
+  default: true;
+  color-scheme: dark;
+  --color-base-100: #0B1220;
+  --color-base-200: #131B2E;
+  --color-base-300: #1B2540;
+  --color-primary: #2DD4CF;
+  --color-success: #3DDC84;
+  --color-warning: #F5C242;
+  --color-error: #FF4757;
+}
+
+:root {
+  --font-heading: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
