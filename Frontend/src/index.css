@@ -1,21 +1,22 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 @plugin "daisyui";
 
-@plugin "daisyui/theme" {
-  name: "floodresponse";
-  default: true;
-  color-scheme: dark;
-  --color-base-100: #0B1220;
-  --color-base-200: #131B2E;
-  --color-base-300: #1B2540;
-  --color-primary: #2DD4CF;
-  --color-success: #3DDC84;
-  --color-warning: #F5C242;
-  --color-error: #FF4757;
+
+@theme {
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-risk-low: #3ddc84;
+  --color-risk-medium: #f5c242;
+  --color-risk-high: #ff8a3d;
+  --color-risk-critical: #ff4757;
 }
 
-:root {
-  --font-heading: "Space Grotesk", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
+@layer base {
+  body {
+    @apply font-sans antialiased;
+    margin: 0;
+  }
 }
