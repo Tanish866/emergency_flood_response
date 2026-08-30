@@ -138,30 +138,10 @@ function MainRoutes() {
       />
 
       {/* Public Auth Routes */}
-      <Route
-        path={ROUTES.login}
-        element={
-          <Layout>
-            <LoginPage />
-          </Layout>
-        }
-      />
-      <Route
-        path={ROUTES.register}
-        element={
-          <Layout>
-            <RegisterPage />
-          </Layout>
-        }
-      />
-      <Route
-        path={ROUTES.signup}
-        element={
-          <Layout>
-            <RegisterPage />
-          </Layout>
-        }
-      />
+      <Route path={ROUTES.login} element={<LoginPage />} />
+      <Route path={ROUTES.register} element={<RegisterPage />} />
+      <Route path={ROUTES.signup} element={<RegisterPage />} />
+
 
       {/* Rescue Team Protected Routes */}
       <Route

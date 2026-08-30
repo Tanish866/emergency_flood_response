@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#020617"/>
+      <stop offset="50%" stop-color="#0b1329"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <!-- Radar Pulse Radial Gradient -->
+    <radialGradient id="radarGlow" cx="70%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.35"/>
+      <stop offset="40%" stop-color="#38bdf8" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#020617" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Tactical Grid Pattern -->
+    <pattern id="tacticalGrid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#334155" stroke-width="0.8" stroke-opacity="0.4"/>
+      <circle cx="60" cy="60" r="2" fill="#ef4444" fill-opacity="0.6"/>
+      <circle cx="0" cy="0" r="1.5" fill="#38bdf8" fill-opacity="0.4"/>
+    </pattern>
+
+    <!-- Flood Risk Zone Hatching -->
+    <pattern id="floodHatch" width="20" height="20" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="20" stroke="#ef4444" stroke-width="2" stroke-opacity="0.25"/>
+    </pattern>
+  </defs>
+
+  <!-- Base Dark Background -->
+  <rect width="100%" height="100%" fill="url(#bgGrad)"/>
+
+  <!-- Tactical Grid -->
+  <rect width="100%" height="100%" fill="url(#tacticalGrid)"/>
+
+  <!-- Radar Glow -->
+  <rect width="100%" height="100%" fill="url(#radarGlow)"/>
+
+  <!-- Simulated River / Brahmaputra Flood Channel -->
+  <path d="M -100 -50 C 400 300 300 700 800 1150" fill="none" stroke="#0284c7" stroke-width="80" stroke-opacity="0.15" stroke-linecap="round"/>
+  <path d="M -100 -50 C 400 300 300 700 800 1150" fill="none" stroke="#38bdf8" stroke-width="14" stroke-opacity="0.4" stroke-linecap="round"/>
+  <path d="M 1200 -100 C 1000 400 1400 800 1100 1200" fill="none" stroke="#0284c7" stroke-width="50" stroke-opacity="0.12"/>
+
+  <!-- High-Risk Flood Polygon Contour Overlay -->
+  <path d="M 250 150 Q 550 80 850 250 T 1450 180 T 1850 400 L 1750 800 Q 1250 950 750 850 T 150 700 Z" fill="url(#floodHatch)" stroke="#ef4444" stroke-width="2" stroke-opacity="0.4" stroke-dasharray="10 5"/>
+
+  <!-- Topographic Elevation Isobar Contour Lines -->
+  <path d="M -100 300 Q 500 180 1100 450 T 2000 350" fill="none" stroke="#38bdf8" stroke-width="2" stroke-opacity="0.3"/>
+  <path d="M -100 420 Q 600 280 1200 580 T 2000 480" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.25"/>
+  <path d="M -100 560 Q 700 400 1300 700 T 2000 620" fill="none" stroke="#f59e0b" stroke-width="2" stroke-opacity="0.35" stroke-dasharray="12 6"/>
+  <path d="M -100 700 Q 800 520 1400 820 T 2000 750" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-opacity="0.45"/>
+
+  <!-- Emergency Response Radar Sweep Target Rings -->
+  <g transform="translate(1400, 250)">
+    <circle cx="0" cy="0" r="100" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-opacity="0.5" stroke-dasharray="6 6"/>
+    <circle cx="0" cy="0" r="200" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-opacity="0.35"/>
+    <circle cx="0" cy="0" r="320" fill="none" stroke="#ef4444" stroke-width="1" stroke-opacity="0.25"/>
+    <line x1="-350" y1="0" x2="350" y2="0" stroke="#ef4444" stroke-width="1" stroke-opacity="0.3"/>
+    <line x1="0" y1="-350" x2="0" y2="350" stroke="#ef4444" stroke-width="1" stroke-opacity="0.3"/>
+    <circle cx="140" cy="-80" r="8" fill="#ef4444" fill-opacity="0.8"/>
+    <circle cx="-180" cy="120" r="6" fill="#f59e0b" fill-opacity="0.8"/>
+  </g>
+
+  <!-- Emergency Dispatch Radar Ping (Left Side) -->
+  <g transform="translate(250, 750)">
+    <circle cx="0" cy="0" r="80" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.4" stroke-dasharray="4 4"/>
+    <circle cx="0" cy="0" r="160" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.25"/>
+    <circle cx="0" cy="0" r="6" fill="#38bdf8" fill-opacity="0.9"/>
+  </g>
+
+  <!-- Emergency Asset Location Pins -->
+  <g transform="translate(680, 320)">
+    <polygon points="0,-12 10,8 -10,8" fill="#ef4444" fill-opacity="0.9"/>
+    <text x="15" y="4" fill="#ef4444" font-family="monospace" font-size="12" font-weight="bold" opacity="0.8">CRITICAL FLOOD ZONE 01</text>
+  </g>
+  <g transform="translate(1050, 620)">
+    <circle cx="0" cy="0" r="8" fill="#10b981" fill-opacity="0.9"/>
+    <text x="15" y="4" fill="#10b981" font-family="monospace" font-size="12" font-weight="bold" opacity="0.8">OPEN SHELTER 04</text>
+  </g>
+</svg>
