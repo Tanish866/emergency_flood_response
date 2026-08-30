@@ -29,15 +29,15 @@ services/ai.service.js ⇄ external AI inference endpoint (optional, not include
 server/
 ├── src/
 │   ├── config/         db.js, env.js, socket.js
-│   ├── models/         User, RescueTeam, Shelter, HelpRequest, RiskZone, Road, Report, Notification
-│   ├── controllers/    HTTP request/response handling per module
-│   ├── routes/         endpoint definitions, mounted under /api/v1
-│   ├── services/       business logic, DB access, orchestration
+│   ├── models/         User, RescueTeam, Shelter, HelpRequest, RiskZone, Road, Report, Notification, Message
+│   ├── controllers/    HTTP request/response handling per module (incl. notification, team)
+│   ├── routes/         endpoint definitions, mounted under /api/v1 (incl. notifications, teams)
+│   ├── services/       business logic, DB access, orchestration (incl. notification, message)
 │   ├── algorithms/     priorityScoring, rescueAllocation, shelterScoring, routeScoring
 │   ├── middleware/     auth, role, validation, centralized error handling
 │   ├── validators/     hand-rolled input validation (no external schema library)
 │   ├── utils/          ApiError, ApiResponse, asyncHandler, distance, constants
-│   ├── sockets/        Socket.IO connection + room registration
+│   ├── sockets/        Socket.IO connection + room registration (user/role/team rooms)
 │   ├── app.js          Express app: middleware, routes, error handling
 │   └── server.js       HTTP server, DB connect, Socket.IO bootstrap
 ├── scripts/
@@ -123,7 +123,7 @@ All routes are versioned under `/api/v1`. 🔒 = requires `Authorization: Bearer
 
 **Shelter** — `GET /shelters` 🔒, `GET /shelters/:id` 🔒, `GET /shelters/nearby` 🔒, `GET /shelters/recommended` 🔒
 
-**Rescue** — `GET /rescue-teams` 🔒, `GET /rescue-teams/:id` 🔒, `GET /rescue-teams/nearby` 🔒, `PATCH /rescue-teams/status` 🔒 (RESCUE_TEAM), `PATCH /rescue-teams/location` 🔒 (RESCUE_TEAM)
+**Rescue** — `GET /rescue-teams` 🔒, `GET /rescue-teams/:id` 🔒, `GET /rescue-teams/nearby` 🔒, `GET /rescue-teams/me/requests` 🔒 (RESCUE_TEAM), `GET /rescue-teams/me/stats` 🔒 (RESCUE_TEAM), `PATCH /rescue-teams/status` 🔒 (RESCUE_TEAM), `PATCH /rescue-teams/location` 🔒 (RESCUE_TEAM)
 
 **Help Request** — `POST /help-requests` 🔒 (USER), `GET /help-requests/my` 🔒 (USER), `GET /help-requests/:id` 🔒, `PATCH /help-requests/:id/accept` 🔒 (RESCUE_TEAM), `PATCH /help-requests/:id/reject` 🔒 (RESCUE_TEAM), `PATCH /help-requests/:id/status` 🔒 (RESCUE_TEAM, ADMIN), `PATCH /help-requests/:id/complete` 🔒 (RESCUE_TEAM, ADMIN)
 
@@ -134,6 +134,10 @@ All routes are versioned under `/api/v1`. 🔒 = requires `Authorization: Bearer
 **Report** — `POST /reports` 🔒, `GET /reports/nearby` 🔒, `GET /reports/my` 🔒, `PATCH /reports/:id/verify` 🔒 (ADMIN), `PATCH /reports/:id/reject` 🔒 (ADMIN)
 
 **Admin** (all ADMIN-only) — `GET /admin/dashboard`, `GET /admin/help-requests`, `GET /admin/rescue-teams`, `GET /admin/shelters`, `PATCH /admin/roads/:id`, `PATCH /admin/shelters/:id`, `PATCH /admin/rescue-teams/:id`, `PATCH /admin/risk-zones/:id`
+
+**Notifications** — `GET /notifications` 🔒, `PATCH /notifications/:id/read` 🔒, `PATCH /notifications/read-all` 🔒
+
+**Team Chat** — `POST /teams/:teamId/messages` 🔒 (RESCUE_TEAM on their own team, or ADMIN), `GET /teams/:teamId/messages` 🔒 (same)
 
 **Health** — `GET /health` (unversioned, unauthenticated)
 
@@ -189,21 +193,25 @@ Content-Type: application/json
 
 Three roles: `USER`, `RESCUE_TEAM`, `ADMIN`. Enforced server-side via `role.middleware.js`'s `authorize(...roles)` — the client-supplied role is never trusted; role is read from the persisted `User` document at authentication time.
 
-- **USER** — create/view own help requests, submit/view own reports, browse shelters/rescue teams/risk/routes.
-- **RESCUE_TEAM** — update own team's status/location, accept/reject/advance help requests assigned to their team.
-- **ADMIN** — dashboard, full visibility into requests/teams/shelters, verify/reject reports, patch roads/shelters/rescue-teams/risk-zones.
+- **USER** — create/view own help requests, submit/view own reports, browse shelters/rescue teams/risk/routes, view/manage own notifications.
+- **RESCUE_TEAM** — update own team's status/location, accept/reject/advance help requests assigned to their team, view own team's request history/stats, send/read messages in their own team's chat.
+- **ADMIN** — dashboard, full visibility into requests/teams/shelters, verify/reject reports, patch roads/shelters/rescue-teams/risk-zones, read/post in any team's chat as `CONTROL_ROOM`.
+
+Notifications (`/notifications`) are scoped to the requester automatically — every user, regardless of role, only ever sees their own.
 
 **Known limitation:** a rescue-team `User` account is linked to its `RescueTeam` document by matching `RescueTeam.contact` to the authenticated user's email (see `resolveRequestingTeamId` / `resolveActor` in the rescue and help-request controllers). There is no dedicated foreign key in the schema (the architecture document didn't specify one), so seeded rescue accounts and their team documents share the same email address by convention. A production build should probably add an explicit `userId` reference on `RescueTeam` — flagged here rather than silently changing the documented model shape.
 
 ## 13. Socket.IO Events
 
-Connect with a JWT: `io(URL, { auth: { token } })`. The server verifies the token during the handshake and joins the socket to `user:<id>` and, for rescue/admin roles, `role:RESCUE_TEAM` / `role:ADMIN`.
+Connect with a JWT: `io(URL, { auth: { token } })`. The server verifies the token during the handshake and joins the socket to `user:<id>` and, by role, `role:RESCUE_TEAM` / `role:ADMIN`. A `RESCUE_TEAM` socket is additionally joined to `team:<rescueTeamId>` (resolved via the same `RescueTeam.contact` ↔ email match described in §12) so team-scoped events — chat, in particular — reach only that team's own connections.
 
-**User-facing:** `riskUpdated`, `routeUpdated`, `shelterUpdated`, `rescueAssigned`, `rescueStatusUpdated`, `emergencyAlert`
-**Rescue-facing:** `newHelpRequest`, `requestCancelled`, `routeUpdated`
-**Admin-facing:** `newHelpRequest`, `roadStatusChanged`, `shelterStatusChanged`, `rescueStatusChanged`, `riskChanged`
+**User-facing:** `riskUpdated`, `routeUpdated`, `shelterUpdated`, `rescueAssigned`, `rescueStatusUpdated`, `emergencyAlert`, `teamLocationUpdated` (live tracking — sent to the citizen who owns the active help request whenever their assigned team's location updates)
+**Rescue-facing:** `newHelpRequest`, `requestCancelled`, `routeUpdated`, `newTeamMessage` (team room)
+**Admin-facing:** `newHelpRequest`, `roadStatusChanged`, `shelterStatusChanged`, `rescueStatusChanged`, `riskChanged`, `newTeamMessage` (all teams, admin room)
 
-Emission is scoped to authenticated rooms only (`emitToUser`, `emitToRole` in `notification.service.js`) — an unauthenticated or wrongly-authorized socket never joins an operational room, so it cannot receive these events.
+Emission is scoped to authenticated rooms only (`emitToUser`, `emitToRole`, `emitToTeam` in `notification.service.js`) — an unauthenticated or wrongly-authorized socket never joins an operational room, so it cannot receive these events.
+
+**Notification persistence:** every role-broadcast event that represents an actual notification (new/updated help requests, road/shelter/rescue-team/risk-zone changes) now also writes a `Notification` document per recipient via `notifyRoleAndEmit`, so `GET /notifications` stays in sync with what was pushed over the socket — a client that was offline when the event fired still sees it on next fetch. High-frequency telemetry (`teamLocationUpdated`) is intentionally **not** persisted as a notification — it would flood the inbox; it's a live-tracking signal only.
 
 ## 14. AI Service Integration
 
@@ -283,6 +291,9 @@ docker compose up --build
 - Rate limiting, CORS, and Helmet are configured for MVP-appropriate defaults, not hardened for a specific production threat model.
 - Test suite has been written and syntax/import-verified but **not executed** in this environment due to no network access — see §16.
 - `routing.service.js`'s corridor search is a straightforward radius query around the origin, not a full pathfinding graph traversal — sufficient for this MVP's "is the nearby road network passable" question, not a turn-by-turn router.
+- Shelter `riskLevel` is computed at read time via a `$geoIntersects` lookup per shelter (or the stored `riskZoneId` if set) — fine at demo scale, but N shelters means N zone lookups per list call; worth caching/denormalizing before scaling up.
+- `notifyRoleAndEmit` persists one `Notification` document per active user in a role on every broadcast (e.g. every admin, on every road/shelter/rescue-team/risk-zone change) — acceptable for a handful of admins/citizens, but would need batching or a fan-out queue at real city scale.
+- Team chat access control assumes one `RescueTeam` per `contact` email, same limitation as §12's linkage; a rescue-team user with no matching `RescueTeam` document gets a 403 rather than an empty chat.
 
 ## 20. What Is Real Data vs. Curated/Demo Data
 
@@ -302,3 +313,40 @@ This is an MVP-scoped implementation, not a hardened production system:
 - No pagination on list endpoints (`GET /shelters`, `GET /rescue-teams`, admin lists) — acceptable at demo scale, not at city scale.
 - No automated CI pipeline is included; test execution is manual (`npm test`).
 - Human-in-the-loop is enforced by role checks, not by workflow design beyond that — a compromised ADMIN account could still patch shelters/roads/teams directly, as documented, since that authority is intentionally given to admins.
+
+## 23. Frontend-Driven Additions
+
+Added on top of the original architecture to support a frontend UI mockup. Same conventions throughout: `{success, message, data}` response shape, `routes → controllers → services → models`, role-guarded, versioned under `/api/v1`.
+
+### 23.1 Rescue Team History & Stats
+
+- `GET /rescue-teams/me/requests` 🔒 (RESCUE_TEAM) — the authenticated team's help requests (any status), most recent first, via `rescue.service.js#getTeamRequestHistory`.
+- `GET /rescue-teams/me/stats` 🔒 (RESCUE_TEAM) — `{ requestsToday, completedToday, inProgress }` for the current calendar day (server local time, midnight cutoff), via `rescue.service.js#getTeamStatsToday`.
+- Both resolve "the authenticated team" the same way the existing status/location endpoints already did: match `RescueTeam.contact` to the JWT's email.
+
+### 23.2 Notifications Persistence
+
+- `Notification` model extended with `link` (existing `type`/`data`/`isRead`/`userId`/`title`/`message` fields kept — `type` and `data` predate this change and stayed for backward compatibility).
+- `GET /notifications` 🔒, `PATCH /notifications/:id/read` 🔒, `PATCH /notifications/read-all` 🔒 — all scoped to the requester's own `userId`; reading or marking another user's notification returns `404`, not another user's data.
+- `notification.service.js#notifyRoleAndEmit` is the mechanism that keeps broadcasts persisted: it looks up every active user in a role, bulk-inserts one `Notification` each, then emits the socket event to the role's room. Used for admin/user-facing broadcasts (help-request creation, road/shelter/rescue-team/risk-zone changes). Single-recipient events (`rescueAssigned`, status changes) already went through the pre-existing `notifyAndEmit`, unchanged.
+
+### 23.3 Rescue Team Vehicle Info
+
+- `RescueTeam` schema gained `vehicleType`, `vehicleName`, `fuelLevel` (0–100, optional). No new endpoint — every existing rescue-team response (list, get-by-id, nearby, admin update) already returns the full document, so these fields show up automatically. `PATCH /admin/rescue-teams/:id` already forwards `req.body` straight to the updater, so admins can set them without any additional wiring.
+
+### 23.4 Team Chat
+
+- New `Message` model: `teamId`, `senderRole` (`CONTROL_ROOM` | `RESCUE_TEAM`), `senderName`, `text`, timestamps.
+- `POST /teams/:teamId/messages` 🔒, `GET /teams/:teamId/messages` 🔒 — restricted to ADMIN (any team, posts as `CONTROL_ROOM`) or the matching `RESCUE_TEAM` account (only their own `teamId`, posts as `RESCUE_TEAM`); anyone else gets `403`.
+- On send, `newTeamMessage` is emitted to both `team:<teamId>` (that team's own sockets) and `role:ADMIN` (every connected admin/control-room socket) — so a control room dashboard watching all teams and a single team's own app both update live.
+- Rescue-team sockets join `team:<teamId>` automatically on connection (`sockets/rescue.socket.js`), resolved the same way as the REST layer.
+
+### 23.5 Shelter Risk-Zone Label
+
+- `Shelter` schema gained an optional `riskZoneId` (ref `RiskZone`).
+- Every shelter read path (`GET /shelters`, `GET /shelters/:id`, `GET /shelters/nearby`, `GET /shelters/recommended`, and the admin update response) now includes a computed `riskLevel` field: if `riskZoneId` is set, that zone's `riskLevel` is used directly; otherwise the shelter's location is checked against all `RiskZone` geometries via `$geoIntersects`, and the highest-`riskScore` intersecting zone's level is used. `riskLevel` is `null` when neither applies — never fabricated.
+
+### 23.6 Live Rescue Team Location for Tracking
+
+- `PATCH /rescue-teams/location` — unchanged request/response shape — now also emits `teamLocationUpdated` to the citizen who owns the team's `currentRequest` (if any), with `{ teamId, helpRequestId, coordinates }`, so a tracking screen updates without polling. If the team has no active request, nothing extra is emitted.
+- **Bug found and fixed while wiring this up:** the pre-existing "notify the assigned team of a new request" logic (in `helpRequest.service.js`, on request creation and on reassignment-after-reject) was calling `emitToUser(team._id, ...)` — but sockets only join rooms keyed by the *User*'s id, never the `RescueTeam` document's id, so that event was silently reaching nobody since the very first version of this backend. Fixed by routing it through the new `emitToTeam(teamId, ...)` helper and the `team:<teamId>` room instead. Worth knowing if your frontend was ever wondering why rescue teams never got a live ping for new assignments — that's why, and it's fixed now.
