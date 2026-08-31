@@ -147,7 +147,51 @@ function LoginPage() {
             </button>
           </form>
 
-          <div className="pt-2 text-center text-[14px] text-slate-400">
+          {/* Quick Test Logins Section */}
+          <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
+            <div className="text-center text-[12px] font-mono font-bold uppercase tracking-wider text-slate-400">
+              ✨ Quick Test Logins:
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("admin@demo.local");
+                  setPassword("Password123!");
+                }}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/90 py-2.5 px-2 text-xs font-semibold text-slate-200 hover:border-slate-700 hover:bg-slate-800/90 active:scale-95 transition"
+              >
+                <span>👤</span>
+                <span>Demo Admin</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("citizen@demo.local");
+                  setPassword("Password123!");
+                }}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/90 py-2.5 px-2 text-xs font-semibold text-slate-200 hover:border-slate-700 hover:bg-slate-800/90 active:scale-95 transition"
+              >
+                <span>👤</span>
+                <span>Demo Citizen</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("rescue1@demo.local");
+                  setPassword("Password123!");
+                }}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/90 py-2.5 px-2 text-xs font-semibold text-slate-200 hover:border-slate-700 hover:bg-slate-800/90 active:scale-95 transition"
+              >
+                <span>🛟</span>
+                <span>Demo Rescue</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-2 text-center text-[14px] text-slate-400 border-t border-slate-800/60">
             Don&apos;t have an account?{" "}
             <Link to="/register" className="font-bold text-red-400 hover:text-red-300 hover:underline">
               Continue to Signup →
@@ -155,6 +199,7 @@ function LoginPage() {
           </div>
         </div>
       </main>
+
 
       {/* Bottom Feature Information Bar */}
       <footer className="relative z-10 border-t border-slate-800/60 bg-slate-950/75 backdrop-blur-md px-4 py-4 shrink-0">
