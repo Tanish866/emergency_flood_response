@@ -1,4 +1,4 @@
-# 🚨 Emergency Flood Response
+# 🚨 ResQFlow
 
 An emergency flood response and coordination platform designed to help citizens during flood situations by connecting them with rescue teams, evacuation shelters, alerts, and safe evacuation routes.
 
